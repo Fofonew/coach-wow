@@ -1,0 +1,154 @@
+name: Installeur Mentor
+
+# Un tag de version (0.3.0 ou v0.3.0) compile l'installeur Windows et le publie
+# dans une Release GitHub. Le numéro du tag devient la version de l'application.
+#
+# Modifier ce fichier sur main, ou lancer le workflow à la main, compile aussi
+# l'installeur, mais sans rien publier : il reste en artefact de l'exécution.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+    branches:
+      - main
+    paths:
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Même environnement que app/build.cmd.
+  VULKAN_SDK_VERSION: 1.4.363.0
+  VULKAN_SDK_SHA256: 94a82d378f7a5e3e54c9db7d2fb7016af136e14ac0a18dbf0f2f67a36352d141
+  VULKAN_SDK: C:\VulkanSDK\1.4.363.0
+  LIBCLANG_PATH: C:\Program Files\LLVM\bin
+  # Chemin court : les chemins longs cassent la compilation des shaders Vulkan
+  # de whisper.cpp.
+  CARGO_TARGET_DIR: C:\cwt
+
+jobs:
+  installeur:
+    name: Installeur Windows x64
+    # windows-2022 fournit Visual Studio 2022, comme la machine de développement.
+    runs-on: windows-2022
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      # Le dépôt stocke les fichiers en LF, comme ils sont sur la machine de
+      # développement : on évite la conversion en CRLF au checkout.
+      - name: Garder les fins de ligne du dépôt
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v7
+
+      - name: Version tirée du tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "Le tag '$env:GITHUB_REF_NAME' n'est pas une version x.y.z." }
+
+          # Remplace la première version trouvée par le motif. Les trois fichiers
+          # doivent rester d'accord, sinon `cargo build --locked` refuse de compiler.
+          function Set-Version([string]$Path, [string]$Pattern) {
+            $text = [IO.File]::ReadAllText($Path)
+            $regex = [regex]::new($Pattern)
+            if (-not $regex.IsMatch($text)) { throw "Version introuvable dans $Path" }
+            [IO.File]::WriteAllText($Path, $regex.Replace($text, "`${1}$version`${2}", 1))
+          }
+          $app = Join-Path $env:GITHUB_WORKSPACE 'app\src-tauri'
+          Set-Version "$app\tauri.conf.json" '("version"\s*:\s*")[^"]*(")'
+          Set-Version "$app\Cargo.toml" '(?m)(^version\s*=\s*")[^"]*(")'
+          Set-Version "$app\Cargo.lock" '(name = "mentor"\r?\nversion = ")[^"]*(")'
+          Write-Host "Version de l'application : $version"
+
+      - name: Vulkan SDK
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:RUNNER_TEMP 'vulkan-sdk.exe'
+          $url = "https://sdk.lunarg.com/sdk/download/$env:VULKAN_SDK_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_SDK_VERSION.exe"
+          curl.exe --fail --location --silent --show-error --retry 3 --output $exe $url
+          if ($LASTEXITCODE -ne 0) { throw "Téléchargement du Vulkan SDK impossible." }
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne $env:VULKAN_SDK_SHA256) { throw "Empreinte du Vulkan SDK inattendue : $hash" }
+          $install = Start-Process -FilePath $exe -Wait -PassThru -ArgumentList @(
+            '--root', $env:VULKAN_SDK, '--accept-licenses', '--default-answer', '--confirm-command', 'install')
+          if ($install.ExitCode -ne 0) { throw "L'installeur du Vulkan SDK a échoué (code $($install.ExitCode))." }
+          foreach ($file in 'Bin\glslc.exe', 'Lib\vulkan-1.lib', 'Include\vulkan\vulkan.h') {
+            if (-not (Test-Path (Join-Path $env:VULKAN_SDK $file))) { throw "Vulkan SDK incomplet : $file manque." }
+          }
+
+      - name: Outils
+        shell: cmd
+        run: |
+          rustc --version
+          cargo --version
+          cmake --version
+          "%LIBCLANG_PATH%\clang.exe" --version
+          node --version
+
+      - name: Dépendances npm
+        working-directory: app
+        run: npm ci
+
+      # Les étapes de app/build.cmd : d'abord le binaire, ce qui produit les DLL
+      # de sherpa-onnx, puis l'installeur une fois ces DLL recopiées.
+      - name: Compiler Mentor
+        shell: cmd
+        working-directory: app
+        run: |
+          for /f "usebackq delims=" %%I in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VSDIR=%%I"
+          if not defined VSDIR (
+            echo ::error::Visual Studio with the C++ tools was not found.
+            exit /b 1
+          )
+          call "%VSDIR%\VC\Auxiliary\Build\vcvars64.bat" || exit /b 1
+          set "PATH=C:\Program Files\CMake\bin;%LIBCLANG_PATH%;%VULKAN_SDK%\Bin;%PATH%"
+
+          pushd src-tauri
+          cargo build --release --locked || exit /b 1
+          popd
+
+          for %%F in (sherpa-onnx-c-api.dll onnxruntime.dll onnxruntime_providers_shared.dll) do (
+            copy /y "%CARGO_TARGET_DIR%\release\%%F" src-tauri\dlls\ || exit /b 1
+          )
+          rem The C++ runtime must come from the Visual Studio that built the binary.
+          for %%F in (msvcp140.dll msvcp140_1.dll vcruntime140.dll vcruntime140_1.dll) do (
+            if exist "%VCToolsRedistDir%x64\Microsoft.VC143.CRT\%%F" (
+              copy /y "%VCToolsRedistDir%x64\Microsoft.VC143.CRT\%%F" src-tauri\dlls\ || exit /b 1
+            ) else (
+              echo ::warning::%%F is missing from this Visual Studio, the copy committed in the repository is used.
+            )
+          )
+
+          call npx tauri build || exit /b 1
+
+      - name: Installeur en artefact
+        uses: actions/upload-artifact@v7
+        with:
+          name: installeur-mentor
+          path: ${{ env.CARGO_TARGET_DIR }}\release\bundle\nsis\*-setup.exe
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Publier la Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          installer=$(ls "$(cygpath -u "$CARGO_TARGET_DIR")"/release/bundle/nsis/*-setup.exe)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$installer" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$installer" \
+              --verify-tag \
+              --title "Mentor ${GITHUB_REF_NAME#v}" \
+              --notes "Télécharge \`$(basename "$installer")\` ci-dessous et lance-le. Le guide est dans [app/README.md](https://github.com/$GH_REPO/blob/$GITHUB_REF_NAME/app/README.md)." \
+              --generate-notes
+          fi

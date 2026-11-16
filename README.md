@@ -29,9 +29,7 @@ Il faut Windows 10 ou 11 en 64 bits et un compte Claude : abonnement Pro ou Max,
 
 ### Installer
 
-L'installeur `Mentor_x.y.z_x64-setup.exe` est un binaire, il n'est donc pas versionné ici. Il se récupère dans les [Releases](https://github.com/Fofonew/coach-wow/releases) quand une version y est publiée, sinon il se compile (voir plus bas).
-
-1. Lance l'installeur (pas besoin d'être administrateur).
+1. Télécharge `Mentor_x.y.z_x64-setup.exe` dans les [Releases](https://github.com/Fofonew/coach-wow/releases) et lance-le (pas besoin d'être administrateur).
 2. Au premier lancement, l'assistant guide les 4 étapes : compte Claude, voix et reconnaissance vocale, touche pour parler, addon.
 3. En jeu : `/reload`, puis `/mentor sync` pour envoyer ta fiche au coach.
 
@@ -50,6 +48,17 @@ build.cmd tauri                :: installeur → C:\cwt\release\bundle\nsis\
 ```
 
 `build.cmd` charge l'environnement Visual Studio et compile dans `C:\cwt` (les chemins longs cassent la compilation des shaders Vulkan de whisper.cpp). Il suppose les emplacements d'installation par défaut, dont le Vulkan SDK 1.4.363.0 dans `C:\VulkanSDK` : adapte les chemins en tête du fichier si les tiens diffèrent. Compile toujours en `--release`. Les détails sont dans [`app/README.md`](app/README.md#compiler-pour-toi).
+
+### Publier une version
+
+Pousse un tag de version : GitHub Actions compile l'installeur et le publie dans une Release.
+
+```
+git tag 0.3.0
+git push origin 0.3.0
+```
+
+Le numéro du tag devient la version de l'application et de l'installeur (`Mentor_0.3.0_x64-setup.exe`). Il n'y a donc rien à modifier dans `Cargo.toml` ni dans `tauri.conf.json` avant de taguer. Le workflow est dans [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Organisation du dépôt
 
