@@ -1,0 +1,34 @@
+# --- Prototype Python ---
+.venv/
+__pycache__/
+*.pyc
+
+# État local : session Claude, captures d'écran, journal
+/runtime/
+*.log
+
+# Voix Piper (61 Mo, se télécharge : voir le README)
+/voices/
+
+# Essais de comparaison de voix (clips audio)
+/voice-test/
+
+# Copie de sauvegarde locale de l'ancien addon
+/ClaudeBridge.backup/
+
+# --- Mentor (app Tauri) ---
+/app/node_modules/
+/app/src-tauri/target/
+# Schémas régénérés par tauri-build à chaque compilation
+/app/src-tauri/gen/schemas/
+
+# Installeurs générés : à publier dans les Releases GitHub, pas dans git
+/dist/
+
+# --- Divers ---
+.claude/settings.local.json
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,72 @@
+[general]
+backend = "claude"
+game = "World of Warcraft: Forever"
+language = "fr"
+preferred_sources = ["wowhead.com", "warcrafttavern.com", "icy-veins.com", "news.blizzard.com", "the official Blizzard forums"]
+prompt_file = "coach_prompt.md"
+runtime_dir = "runtime"
+
+[bindings]
+push_to_talk = "key:f13"
+push_to_talk_with_screenshot = "key:f14"
+# Un appui = capture immédiate, jointe à ta prochaine question (laisser "" pour désactiver)
+screenshot = "key:f15"
+stop = "key:pause"
+new_session = "key:scroll_lock"
+interrupt_on_push_to_talk = true
+release_tail_ms = 200
+min_recording_seconds = 0.35
+
+[audio]
+input_device = ""
+output_device = ""
+output_volume = 1.0
+beeps = true
+
+[stt]
+model = "large-v3-turbo"
+device = "cuda"
+compute_type = "float16"
+cpu_fallback_model = "small"
+beam_size = 5
+initial_prompt = "Questions sur World of Warcraft Forever : quêtes, donjons, raids, talents, métiers, Horde, Alliance, Skyborne, Wowhead."
+
+[tts]
+engine = "piper"
+piper_model = "voices/fr_FR-siwis-medium.onnx"
+piper_length_scale = 0.95
+piper_use_cuda = false
+edge_voice = "fr-FR-HenriNeural"
+edge_rate = "+10%"
+
+[claude]
+executable = "claude"
+model = "sonnet"
+effort = "low"
+isolate = true
+persist_session = true
+session_idle_reset_minutes = 0
+interrupt_grace_seconds = 5
+timeout_seconds = 180
+extra_args = []
+
+[codex]
+executable = "codex"
+model = ""
+reasoning_effort = "low"
+sandbox = "read-only"
+history_turns = 6
+timeout_seconds = 180
+extra_args = []
+
+[screenshot]
+# "auto" = l'écran où se trouve la fenêtre active (le jeu). Sinon un numéro : 1, 2...
+monitor = "auto"
+# Capture silencieuse à chaque push-to-talk, envoyée seulement si ta question parle de l'écran
+auto_on_keywords = true
+keywords = ["écran", "screen", "regarde", "tu vois", "vois-tu", "ce que je vois", "capture", "cet objet", "cet item", "cette quête", "ce mob", "ce boss", "ce pnj", "ce sort", "cette carte", "infobulle", "tooltip", "c'est quoi ça", "c'est quoi ce", "c'est quoi cette", "ça c'est quoi"]
+# Durée de validité d'une capture prise avec la touche "screenshot"
+armed_seconds = 90
+max_width = 1600
+jpeg_quality = 80
+keep_last = 5

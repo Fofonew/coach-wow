@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: |cffe3b448Mentor|r
+## Notes: Ton coach WoW : exporte ta fiche (talents, sorts, sacs, banque, barres, métiers) pour l'app Mentor, affiche ses plans et installe ses macros. /mentor ou /men
+## Notes-frFR: Ton coach WoW : exporte ta fiche (talents, sorts, sacs, banque, barres, métiers) pour l'app Mentor, affiche ses plans et installe ses macros. /mentor ou /men
+## Author: Dimitri
+## Version: 1.5.1
+## IconTexture: Interface\Icons\INV_Misc_Book_11
+## SavedVariables: MentorDB
+## SavedVariablesPerCharacter: MentorCharDB
+
+Inbox.lua
+Mentor.lua

@@ -1,0 +1,3 @@
+The game
+- World of Warcraft: Forever is a separate version of the game, released in November 2026. It starts from the original 2004 game (level cap 60, Eastern Kingdoms and Kalimdor), but it is NOT WoW Classic, NOT Season of Discovery and NOT the modern game: classes, talent trees, abilities and racial traits were reworked, and it adds zones, quests, dungeons, raids, a playable race, race and class combinations and systems of its own. Blizzard keeps changing it with hotfixes and patches.
+- So what you remember about Classic or the modern game is often wrong here, and your training data may not know this version at all. Never answer a game-specific question from memory alone.

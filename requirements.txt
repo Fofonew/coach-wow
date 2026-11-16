@@ -1,0 +1,12 @@
+numpy
+sounddevice
+faster-whisper
+pynput
+mss
+Pillow
+piper-tts
+edge-tts
+miniaudio
+# Whisper sur carte graphique NVIDIA (Windows/Linux). Retire ces deux lignes sans GPU NVIDIA.
+nvidia-cublas-cu12; sys_platform != "darwin"
+nvidia-cudnn-cu12>=9,<10; sys_platform != "darwin"
